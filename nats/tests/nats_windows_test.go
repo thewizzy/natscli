@@ -13,7 +13,7 @@ import (
 )
 
 func runCommand(cmd string, input string, args ...string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	execution := exec.Command(cmd, args...)

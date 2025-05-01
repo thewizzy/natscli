@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -58,8 +59,30 @@ func runNatsCli(t *testing.T, args ...string) (output []byte) {
 	return runNatsCliWithInput(t, "", args...)
 }
 
+//func runNatsCliWithInput(t *testing.T, input string, args ...string) (output []byte) {
+//	t.Helper()
+//
+//	var cmd []string
+//	var err error
+//	if os.Getenv("CI") == "true" {
+//		cmd, err = shellquote.Split(fmt.Sprintf("../nats %s", strings.Join(args, " ")))
+//	} else {
+//		cmd, err = shellquote.Split(fmt.Sprintf("run ../main.go %s", strings.Join(args, " ")))
+//	}
+//	if err != nil {
+//		t.Fatalf("spliting command argument string failed: %v", err)
+//	}
+//	out, err := runCommand("go", input, cmd...)
+//	if err != nil {
+//		t.Fatalf("%v", err)
+//	}
+//	return out
+//}
+
 func runNatsCliWithInput(t *testing.T, input string, args ...string) (output []byte) {
 	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	var cmd []string
 	var err error
@@ -71,10 +94,16 @@ func runNatsCliWithInput(t *testing.T, input string, args ...string) (output []b
 	if err != nil {
 		t.Fatalf("spliting command argument string failed: %v", err)
 	}
-	out, err := runCommand("go", input, cmd...)
-	if err != nil {
-		t.Fatalf("%v", err)
+
+	execution := exec.CommandContext(ctx, "go", cmd...)
+	if input != "" {
+		execution.Stdin = strings.NewReader(input)
 	}
+	out, err := execution.CombinedOutput()
+	if err != nil {
+		t.Fatalf("nats utility failed: %v\n%v", err, string(out))
+	}
+
 	return out
 }
 
